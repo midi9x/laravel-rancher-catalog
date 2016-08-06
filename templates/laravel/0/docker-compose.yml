@@ -1,0 +1,77 @@
+application:
+    container_name: ${application_name}_application
+    image: ${application_image}
+workspace:
+    container_name: ${application_name}_workspace
+    restart: always
+    image: framgia/laravel-workspace
+    volumes_from:
+        - application
+    tty: true
+php-fpm:
+    container_name: ${application_name}_php-fpm
+    restart: always
+    image: framgia/laravel-php-fpm
+    volumes_from:
+        - application
+    expose:
+        - "9000"
+    links:
+        - workspace
+nginx:
+    container_name: ${application_name}_nginx
+    restart: always
+    image: framgia/laravel-nginx
+    volumes_from:
+        - data
+        - logs
+        - application
+    ports:
+        - "${public_port}:80"
+    links:
+        - php-fpm
+data:
+    container_name: ${application_name}_data
+    image: debian
+    volumes:
+        - /private/var/lib/${application_name}_mysql:/var/lib/mysql
+        - /private/var/lib/${application_name}_data:/data
+        - /private/var/lib/${application_name}_logs/nginx:/var/log/nginx
+logs:
+    container_name: ${application_name}_logs
+    image: debian
+    volumes:
+        - /private/var/lib/${application_name}_logs/nginx:/var/log/nginx
+        - /private/var/lib/${application_name}_logs/mongodb:/var/log/mongodb
+        - /private/var/lib/${application_name}_logs/mysql:/var/log/mysql
+mysql:
+    container_name: ${application_name}_mysql
+    restart: always
+    image: mysql
+    volumes_from:
+        - data
+        - logs
+    expose:
+        - "3306"
+    environment:
+        MYSQL_DATABASE: ${mysql_database}
+        MYSQL_USER: ${mysql_user}
+        MYSQL_PASSWORD: ${mysql_password}
+        MYSQL_ROOT_PASSWORD: ${mysql_root_password}
+mongo:
+    container_name: ${application_name}_mongo
+    restart: always
+    image: mongo
+    expose:
+        - "27017"
+    volumes_from:
+        - data
+        - logs
+redis:
+    container_name: ${application_name}_redis
+    restart: always
+    image: redis
+    expose:
+        - "6379"
+    volumes_from:
+        - data
